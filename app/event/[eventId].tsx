@@ -9,11 +9,12 @@ import {
 import { Text, PlanCard, Icon, Image, Button, Modal } from '@/components';
 import { Rating } from 'react-native-ratings';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useGetEventDetailQuery } from '@/api/event';
+import { useGetEventDetailQuery, useGetEventUserRateQuery } from '@/api/event';
 import Carousel from 'react-native-reanimated-carousel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRateEventMutation } from '@/api/event';
 
 const PAGE_WIDTH = Dimensions.get('window').width;
 const rating: number = 5;
@@ -21,10 +22,12 @@ const rating: number = 5;
 export default function EventDetails() {
   const router = useRouter();
   const { eventId, from } = useLocalSearchParams();
-  const { data = {}, isLoading } = useGetEventDetailQuery(eventId);
+  const { data = {}, isLoading, refetch: refetchEventDetail } = useGetEventDetailQuery(eventId);
+  const { data: userRatingData, isLoading: isUserRatingLoading, refetch: refetchUserRating } = useGetEventUserRateQuery(eventId);
   const { top } = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [rateEvent] = useRateEventMutation();
 
   const event = {
     id: data.id,
@@ -42,12 +45,15 @@ export default function EventDetails() {
     valoration: ((data.valoration || 10) / 2).toFixed(1),
   };
 
+  const userPreviousRating = userRatingData?.score;
+
   const [rating, setRating] = useState(0);
 
-  const enviarCalificacion = () => {
+  const enviarCalificacion = async () => {
     const ratingDoble = rating === 0 ? 1 : rating * 2;
-    // Aquí deberías enviar 'ratingDoble' a tu API
-    // Por ahora, solo imprimimos el valor en la consola
+    await rateEvent({ eventId: event.id, nota: ratingDoble, description: "Evento increíble" });
+    refetchEventDetail();
+    refetchUserRating();
     console.log('Calificación enviada:', ratingDoble);
   };
 
@@ -132,15 +138,21 @@ export default function EventDetails() {
             {event.description}
           </Text>
         </TouchableWithoutFeedback>
-        {from === 'plan' && (
-          <Button
-            stylish="outline"
-            onPress={() => setIsRatingOpen(true)}
-            className="mt-auto"
-          >
+
+        {from === 'plan' && !isUserRatingLoading && (
+        userPreviousRating ? (
+          <>
+            <Text className="text-yellow-500 text-xl text-center">Tu valoración: {userPreviousRating / 2} ⭐</Text>
+            <Button stylish="outline" onPress={() => setIsRatingOpen(true)} className="mt-auto">
+              Volver a valorar
+            </Button>
+          </>
+        ) : (
+          <Button stylish="outline" onPress={() => setIsRatingOpen(true)} className="mt-auto">
             Valorar
           </Button>
-        )}
+        )
+      )}
         <Modal open={isRatingOpen} onClose={() => setIsRatingOpen(false)}>
           <View className="bg-neutral-700 p-4 rounded-xl mx-auto">
             <Text className="text-base text-center">
