@@ -8,7 +8,7 @@ import { KeyboardAvoidingView } from 'react-native';
 import { View } from 'react-native';
 
 export default function Signup() {
-  const { signup, error } = useAuth();
+  const { signup, error, setError } = useAuth();
 
   const { values, onChange } = useForm({
     email: '',
@@ -18,7 +18,11 @@ export default function Signup() {
 
   const onSubmit = async () => {
     const { password, confirmPassword } = values;
-    if (password !== confirmPassword) return;
+    if (password !== confirmPassword){
+      setError('Las contraseñas deben coincidir');
+      return;
+    }
+    setError(null);
     await signup(values as unknown as AuthPayload);
   };
 
