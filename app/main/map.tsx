@@ -16,29 +16,43 @@ import { LinearGradient } from 'expo-linear-gradient';
 import useLocation from '@/hooks/useLocation';
 import { useLazyGetPlanDetailsQuery } from '@/api/plan';
 import { useLazyGetEventsQuery } from '@/api/event';
+import { useLazyGetCategoriesQuery } from '@/api/event';
+import Slider from '@react-native-community/slider';
+import { Picker} from '@react-native-picker/picker';
 
 export default function Map() {
   const [isPlanSelectorOpened, setIsPlanSelectorOpened] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [focusedEvent, setFocusedEvent] = useState(0);
-
   const location = useLocation();
-
-  const [
-    getPlanDetails,
-    { data: plan = { events: [] }, isLoading: isLoadingPlan },
-  ] = useLazyGetPlanDetailsQuery();
-
-  const [
-    getAllEvents,
-    { data: allEvents = [], error, isLoading: isLoadinEvents },
-  ] = useLazyGetEventsQuery();
+  const [getCategories, { data: categories = [], isLoading: isLoadingCategories },] = useLazyGetCategoriesQuery();
+  const [getPlanDetails, { data: plan = { events: [] }, isLoading: isLoadingPlan },] = useLazyGetPlanDetailsQuery();
+  const [getAllEvents, { data: allEvents = [], error, isLoading: isLoadinEvents },] = useLazyGetEventsQuery();
 
   const isLoading = isLoadingPlan || isLoadinEvents;
 
-  let events = !!selectedPlan ? plan?.events : allEvents;
+  useEffect(() => {
+    if (categories.length === 0) {
+      getCategories();
+    }
+  }, [categories]);
 
-  events = events.filter(({ coord_x, coord_y }) => !!coord_x && !!coord_y);
+  useEffect(() => {
+    selectedPlan
+      ? getPlanDetails({ id: selectedPlan, location })
+      : getAllEvents({});
+  }, [selectedPlan]);
+  
+  const [filters, setFilters] = useState({
+    price: null,
+    valoration: null,
+    category: null,
+  });
+
+  const [pendingFilters, setPendingFilters] = useState(filters);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  let events = !!selectedPlan ? plan?.events : allEvents;
 
   const markers = events.map(({ coord_x, coord_y }) => ({
     coordinate: {
@@ -74,17 +88,29 @@ export default function Map() {
     })
   );
 
-  useEffect(() => {
-    selectedPlan
-      ? getPlanDetails({ id: selectedPlan, location })
-      : getAllEvents({});
-  }, [selectedPlan]);
+  
 
   const onPlanSelected = (planId: string | null) => {
     console.log('planId', planId);
     setSelectedPlan(planId);
     setIsPlanSelectorOpened(false);
   };
+
+  const applyFilters = () => {
+    setFilters(pendingFilters);
+    setIsFilterModalOpen(false);
+    getAllEvents(pendingFilters);
+  };
+
+  const resetFilters = () => {
+    setPendingFilters({
+      price: null,
+      valoration: null,
+      category: null,
+    });
+  };
+
+  
 
   return (
     <>
@@ -101,15 +127,84 @@ export default function Map() {
             />
           ),
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => setIsPlanSelectorOpened((p) => !p)}
-              className="mr-4"
-            >
-              <Icon name="notebook" />
-            </TouchableOpacity>
+            <View className="flex-row">
+              {/* 🔹 Botón para abrir el selector de planes */}
+              <TouchableOpacity
+                onPress={() => setIsPlanSelectorOpened((p) => !p)}
+                className="mr-4"
+              >
+                <Icon name="notebook" />
+              </TouchableOpacity>
+
+              {/* 🔹 Botón para abrir el modal de filtros */}
+              <TouchableOpacity
+                onPress={() => setIsFilterModalOpen(true)}
+                className="mr-4"
+              >
+                <Icon name="filter" />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
+
+      {/* 🔹 Modal de filtros */}
+      <Modal open={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)}>
+        <View className="bg-neutral-700 w-full rounded-xl p-4">
+          <Text bold className="white font-black text-lg mb-2">Filtrar Eventos</Text>
+
+          {/* Precio */}
+          <Text className="white">Precio Máximo: {pendingFilters.price !== null ? `${pendingFilters.price}€` : 'Sin Precio Máximo'}</Text>
+          <Slider
+            style={{ width: '100%', height: 40 }}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={pendingFilters.price ?? 0}
+            onValueChange={(value) => setPendingFilters((prev) => ({ ...prev, price: value }))}
+            minimumTrackTintColor="#1E90FF"
+            maximumTrackTintColor="#808080"
+          />
+
+          {/* Valoración */}
+          <Text className="white mt-4">Valoración Mínima: {pendingFilters.valoration !== null ? `${pendingFilters.valoration}` : 'Sin Valoración'}</Text>
+          <Slider
+            style={{ width: '100%', height: 40 }}
+            minimumValue={0}
+            maximumValue={10}
+            step={1}
+            value={pendingFilters.valoration ?? 0}
+            onValueChange={(value) => setPendingFilters((prev) => ({ ...prev, valoration: value }))}
+            minimumTrackTintColor="#FFD700"
+            maximumTrackTintColor="#808080"
+          />
+
+          {/* Categoría */}
+          <Text className="white mt-4">Categoría:</Text>
+          <Picker
+            selectedValue={pendingFilters.category}
+            onValueChange={(itemValue) => setPendingFilters((prev) => ({ ...prev, category: itemValue }))}
+            style={{ backgroundColor: 'white', marginTop: 5, borderRadius: 10 }}
+          >
+            <Picker.Item label="Todas" value="" />
+            {categories.map((category) => (
+              <Picker.Item key={category.id} label={category.category} value={category.id} />
+            ))}
+          </Picker>
+
+          {/* Botón de aplicar */}
+          <TouchableOpacity
+            onPress={resetFilters}
+            className="mt-4 bg-red-500 p-3 rounded-lg"
+          >
+            <Text className="text-white text-center font-bold">Restablecer Filtros</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={applyFilters} className="bg-blue-500 p-3 rounded-lg mt-4">
+            <Text className="text-white text-center font-bold">Aplicar Filtros</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
       <Spinner open={isLoading} />
       <View className="flex-1">
         <Modal
