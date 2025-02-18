@@ -31,11 +31,6 @@ export default function Map() {
 
   const isLoading = isLoadingPlan || isLoadinEvents;
 
-  useEffect(() => {
-    if (categories.length === 0) {
-      getCategories();
-    }
-  }, [categories]);
 
   useEffect(() => {
     selectedPlan
@@ -110,6 +105,13 @@ export default function Map() {
     });
   };
 
+  const openFilterModal = () => {
+    setIsFilterModalOpen(true);
+    if (categories.length === 0) {
+      getCategories();
+    }
+  };
+
   
 
   return (
@@ -138,7 +140,7 @@ export default function Map() {
 
               {/* 🔹 Botón para abrir el modal de filtros */}
               <TouchableOpacity
-                onPress={() => setIsFilterModalOpen(true)}
+                onPress={() => openFilterModal()}
                 className="mr-4"
               >
                 <Icon name="filter" />
