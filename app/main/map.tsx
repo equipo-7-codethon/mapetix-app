@@ -182,17 +182,24 @@ export default function Map() {
           />
 
           {/* Categoría */}
-          <Text className="white mt-4">Categoría:</Text>
-          <Picker
-            selectedValue={pendingFilters.category}
-            onValueChange={(itemValue) => setPendingFilters((prev) => ({ ...prev, category: itemValue }))}
-            style={{ backgroundColor: 'white', marginTop: 5, borderRadius: 10 }}
-          >
-            <Picker.Item label="Todas" value="" />
-            {categories.map((category) => (
-              <Picker.Item key={category.id} label={category.category} value={category.id} />
-            ))}
-          </Picker>
+          <View className="mt-4 w-full">
+            <Text className="text-white mb-2">Categoría:</Text>
+            <View className="bg-neutral-700 rounded-lg overflow-hidden border border-neutral-500">
+              <Picker
+                selectedValue={pendingFilters.category}
+                onValueChange={(itemValue) =>
+                  setPendingFilters((prev) => ({ ...prev, category: itemValue }))
+                }
+                style={{ color: 'white' }}
+                dropdownIconColor="white"
+              >
+                <Picker.Item label="Todas" value="" />
+                {categories.map((category) => (
+                  <Picker.Item key={category.id} label={category.category} value={category.id} />
+                ))}
+              </Picker>
+            </View>
+          </View>
 
           {/* Botón de aplicar */}
           <TouchableOpacity
