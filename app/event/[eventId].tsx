@@ -180,6 +180,11 @@ export default function EventDetails() {
           </View>
         </Modal>
       </View>
+      <View className="px-4 flex-1">
+        <Button onPress={() => router.push(`/chat/${event.id}?title=${encodeURIComponent(event.title)}`)} className="mt-4">
+          Acceder al Chat del Evento
+        </Button>
+      </View>
     </ScrollView>
   );
 }
