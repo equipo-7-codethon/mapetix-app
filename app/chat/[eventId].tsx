@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGetMessagesQuery } from '@/api/chat';
 import { useInsertMessageMutation } from '@/api/chat';
 import { useNavigation } from '@react-navigation/native';
+import { useGetUserEmailQuery } from '@/api/user';
 
 const SOCKET_SERVER_URL = 'http://192.168.1.38:5000/chat';
 
@@ -19,7 +20,31 @@ export default function ChatScreen() {
   const socketRef = useRef<Socket | null>(null); // useRef para almacenar el socket
   const [insertMessage] = useInsertMessageMutation();
   const { data = [], isLoading, refetch: refetchGetMessages } = useGetMessagesQuery(eventId);
-    
+  const { data: userEmail, error, isLoading: cargando } = useGetUserEmailQuery();
+  const formatTime = (timeString: string) => {
+    const date = new Date(timeString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
+  const formatDate = (timeString: string) => {
+    const date = new Date(timeString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    // Si la fecha es hoy
+    if (date.toDateString() === today.toDateString()) {
+      return 'Hoy';
+    }
+
+    // Si la fecha es ayer
+    if (date.toDateString() === yesterday.toDateString()) {
+      return 'Ayer';
+    }
+
+    // Si no es ni hoy ni ayer, mostramos la fecha completa
+    return date.toLocaleDateString();
+  };
 
   useEffect(() => {
     if (title) {
@@ -60,9 +85,13 @@ export default function ChatScreen() {
 
       newSocket.on('message', (data) => {
         console.log('Mensaje recibido:', data);
-        setMessages((prev) => { // Agrega este log para ver si está actualizando correctamente
-          return [...prev, data];
-        });
+        setMessages((prev) => [
+            ...prev,
+            {
+              ...data,
+              created_at: data.created_at || new Date().toISOString(), // Si no tiene, le asignamos la fecha actual
+            },
+        ]);
       });
 
       newSocket.on('error', (error) => {
@@ -101,28 +130,51 @@ export default function ChatScreen() {
       className="flex-1 bg-neutral-800 px-4"
     >
       <FlatList
-        data={messages}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          
-          <View className="flex-row items-start mb-3">
-            {/* Avatar con la primera letra del usuario */}
-            <View className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2">
-              <Text className="text-white font-bold">{item.user[0].toUpperCase()}</Text>
+      data={messages}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item, index }) => {
+        const isOwnMessage = item.user === userEmail;
+        const messageTime = item.created_at ? formatTime(item.created_at) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageDate = item.created_at ? formatDate(item.created_at) : ''; // Usamos '' si es el mismo día
+        const showDate = index === 0 || new Date(item.created_at).toDateString() !== new Date(messages[index - 1].created_at).toDateString();
+        const showUser = index === 0 || item.user !== messages[index - 1].user;
+
+        return (
+          <View className="flex-col">
+          {showDate && (
+            <View className="w-full flex items-center my-2">
+              <Text className="text-gray-500 text-xs">{messageDate}</Text>
             </View>
-            <View className="ml-3 flex-1">
-              <Text className="text-gray-300 font-bold">{item.user}</Text>
-            
-            {/* Mensaje */}
-            <View className="mb-2 p-2 rounded-lg bg-gray-700 self-start">
-              <Text className="text-white">{item.message}</Text>
+          )}
+          <View className={`flex-row items-start mb-3 ${isOwnMessage ? "justify-end" : ""}`}>
+            {!isOwnMessage && (
+              <View className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2">
+                <Text className="text-white font-bold">{item.user[0].toUpperCase()}</Text>
+              </View>
+            )}
+
+            <View className={`ml-3 flex-1 max-w-[75%] ${isOwnMessage ? "items-end" : "items-start"}`}>
+              {!isOwnMessage && showUser && (
+                <Text className="text-gray-300 font-bold">{item.user}</Text>
+              )}
+
+                <View
+                  className={`mb-2 p-2 rounded-lg ${isOwnMessage ? "bg-blue-600" : "bg-gray-700"} self-${isOwnMessage ? "end" : "start"}`}
+                  style={{ paddingHorizontal: 16 }}  // Ajusta el padding horizontal del mensaje
+                >
+                <Text className="text-white">{item.message}</Text>
+                <Text className={`text-gray-400 text-xs text-right`}>
+                    {messageTime} {/* Mostramos la hora aquí */}
+                </Text>
               </View>
             </View>
           </View>
-        )}
-        style={{ marginTop: 120 }} // Ajusta el valor según el tamaño de la barra
-        
-      />
+          </View>
+        );
+      }}
+      style={{ marginTop: 120 }}
+    />
+
       <View className="flex-row items-center gap-x-2 mb-4">
         <TextInput
           className="flex-1 bg-gray-600 text-white p-2 rounded"
