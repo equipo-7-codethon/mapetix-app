@@ -18,6 +18,8 @@ import React from 'react';
 import authApi from '@/api/auth';
 import planApi from '@/api/plan';
 import eventApi from '@/api/event';
+import chatApi from '@/api/chat';
+import notificationApi from '@/api/notification';
 
 const persistConfig = {
   key: 'root',
@@ -30,6 +32,8 @@ const rootReducer = combineReducers({
   [authApi.reducerPath]: authApi.reducer,
   [planApi.reducerPath]: planApi.reducer,
   [eventApi.reducerPath]: eventApi.reducer,
+  [chatApi.reducerPath]: chatApi.reducer,
+  [notificationApi.reducerPath]: notificationApi.reducer,
 });
 
 export const store = configureStore({
@@ -44,7 +48,9 @@ export const store = configureStore({
       .concat(userApi.middleware)
       .concat(authApi.middleware)
       .concat(planApi.middleware)
-      .concat(eventApi.middleware),
+      .concat(eventApi.middleware)
+      .concat(chatApi.middleware)
+      .concat(notificationApi.middleware),
 });
 
 setupListeners(store.dispatch);
