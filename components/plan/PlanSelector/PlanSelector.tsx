@@ -1,11 +1,12 @@
-import React from 'react';
+import React, {useCallback} from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import Text from '../../ui/atoms/Text/Text';
 import Spinner from '../../ui/atoms/Spinner/Spinner';
 
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import clsx from 'clsx';
 import { useRouter } from 'expo-router';
-import { useGetMyPlansQuery } from '@/api/plan';
+import { useLazyGetMyPlansQuery } from '@/api/plan';
 
 interface PlanSelectorProps {
   onPlanSelected?: (planId: string) => void;
@@ -16,7 +17,13 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({
   onPlanSelected,
   ...props
 }) => {
-  const { data: plans, error, isLoading } = useGetMyPlansQuery();
+  const [trigger,{ data: plans, error, isLoading }] = useLazyGetMyPlansQuery();
+
+  useFocusEffect(
+    useCallback(() => {
+      trigger();
+    }, [trigger])
+  );
 
   const renderItem = ({
     item: { description, start_date, total_price, plan_id },
