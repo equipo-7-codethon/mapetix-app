@@ -1,10 +1,17 @@
+import { authApiQuery } from '@/utils/http';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const userApi = createApi({
   reducerPath: 'userApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/graphql', method: 'POST' }),
-  endpoints: (builder) => ({}),
+  baseQuery: authApiQuery,
+  endpoints: (builder) => ({
+    getUserEmail: builder.query<string, void>({
+      query: () => 'user/email',
+    }),
+  }),
 });
 
-export const {} = userApi;
+export const {
+  useGetUserEmailQuery
+} = userApi;
 export default userApi;
