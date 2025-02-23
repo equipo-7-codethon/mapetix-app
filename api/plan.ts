@@ -21,11 +21,9 @@ const planApi = createApi({
       }),
     }),
     generatePlan: builder.mutation({
-      query: ({ date }) => ({
+      query: ({ date, location: { lat, long }, maxDistance, maxPrice  }) => ({
         url:
-          'plan?userLocation=0,0&maxDistance=3&TargetDate=' +
-          date +
-          '&maxPrice=10000000',
+          `plan?userLocation=${lat},${long}&maxDistance=${maxDistance}&TargetDate=${date}&maxPrice=${maxPrice}`,
         method: 'GET',
       }),
     }),
