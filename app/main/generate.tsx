@@ -8,12 +8,17 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { useGeneratePlanMutation } from '@/api/plan';
 import { useRouter } from 'expo-router';
+import Slider from '@react-native-community/slider';
+import useLocation from '@/hooks/useLocation';
 
 const GeneratePlan = () => {
   const router = useRouter();
   const [date, setDate] = useState(new Date());
   const [errorMessage, setErrorMessage] = useState('');
   const [generatePlan, {}] = useGeneratePlanMutation();
+  const location = useLocation();
+  const [maxDistance, setMaxDistance] = useState(10);
+  const [maxPrice, setMaxPrice] = useState(10);
 
   const onDatePickerOpen = () => {
     if (Platform.OS === 'android') {
@@ -40,6 +45,9 @@ const GeneratePlan = () => {
 
       const response = await generatePlan({
         date: dayjs(date).format('YYYY-MM-DD'),
+        location,
+        maxDistance,
+        maxPrice,
       });
 
       console.log(response);
@@ -89,6 +97,34 @@ const GeneratePlan = () => {
           onChange={(_, date) => setDate(date || new Date())}
         />
       )}
+
+      {/* Slider de Distancia */}
+      <Text bold style={{ color: 'white', marginTop: 20 }}>Distancia Máxima: {maxDistance} km</Text>
+      <Slider
+        style={{ width: 200, height: 40 }}
+        minimumValue={1}
+        maximumValue={50}
+        step={1}
+        value={maxDistance}
+        onValueChange={setMaxDistance}
+        minimumTrackTintColor="#1EB1FC"
+        maximumTrackTintColor="#D3D3D3"
+        thumbTintColor="#1EB1FC"
+      />
+
+      {/* Slider de Precio */}
+      <Text bold style={{ color: 'white', marginTop: 20 }}>Precio Máximo: {maxPrice}€</Text>
+      <Slider
+        style={{ width: 200, height: 40 }}
+        minimumValue={1}
+        maximumValue={300}
+        step={1}
+        value={maxPrice}
+        onValueChange={setMaxPrice}
+        minimumTrackTintColor="#1EB1FC"
+        maximumTrackTintColor="#D3D3D3"
+        thumbTintColor="#1EB1FC"
+      />
 
       {errorMessage ? (
         <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
